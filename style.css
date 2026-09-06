@@ -1,0 +1,78 @@
+:root {
+  --bg: var(--tg-theme-bg-color, #0f0f10);
+  --text: var(--tg-theme-text-color, #ffffff);
+  --hint: var(--tg-theme-hint-color, #8b8b8b);
+  --button: var(--tg-theme-button-color, #2ea6ff);
+  --button-text: var(--tg-theme-button-text-color, #ffffff);
+  --card: var(--tg-theme-secondary-bg-color, #1c1c1e);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.container {
+  padding: 20px 16px 40px;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+header { text-align: center; margin-bottom: 24px; }
+header h1 { margin: 0 0 4px; font-size: 24px; }
+.subtitle { color: var(--hint); margin: 0; font-size: 14px; }
+
+.plans { display: flex; flex-direction: column; gap: 12px; }
+
+.plan-card {
+  background: var(--card);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color .15s ease;
+}
+
+.plan-card.selected { border-color: var(--button); }
+
+.plan-info { display: flex; flex-direction: column; gap: 2px; }
+.plan-title { font-weight: 600; font-size: 16px; }
+.plan-desc { color: var(--hint); font-size: 13px; }
+.plan-price { font-weight: 700; font-size: 18px; white-space: nowrap; }
+
+.status {
+  margin-top: 20px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--card);
+  text-align: center;
+  font-size: 14px;
+}
+
+.hidden { display: none !important; }
+
+.config-block {
+  margin-top: 20px;
+  background: var(--card);
+  border-radius: 14px;
+  padding: 18px;
+  text-align: center;
+}
+
+.download-btn {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 12px 24px;
+  border-radius: 10px;
+  background: var(--button);
+  color: var(--button-text);
+  text-decoration: none;
+  font-weight: 600;
+}
