@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>VelocePN</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<div class="container">
+
+  <header class="brand">
+    <h1><span class="brand-white">Veloce</span><span class="brand-cyan">PN</span></h1>
+  </header>
+
+  <!-- ===== ТАРИФЫ ===== -->
+  <section id="view-plans" class="view">
+
+    <div class="segmented" id="planTypeToggle">
+      <button class="seg-btn active" data-type="basic">Базовый<span class="seg-sub">до 2 устройств</span></button>
+      <button class="seg-btn" data-type="family">Семейный<span class="seg-sub">до 5 устройств</span></button>
+    </div>
+
+    <div id="plans" class="plans"></div>
+
+    <div id="status" class="status hidden"></div>
+  </section>
+
+  <!-- ===== БАЛАНС ===== -->
+  <section id="view-balance" class="view hidden">
+    <div class="balance-card">
+      <span class="balance-label">Баланс</span>
+      <span class="balance-amount" id="balanceAmount">0 ₽</span>
+      <button class="topup-btn" id="topupBtn">Пополнить</button>
+    </div>
+
+    <div class="topup-options hidden" id="topupOptions">
+      <button class="topup-chip" data-amount="300">+300 ₽</button>
+      <button class="topup-chip" data-amount="500">+500 ₽</button>
+      <button class="topup-chip" data-amount="1000">+1000 ₽</button>
+    </div>
+
+    <h3 class="section-title">История операций</h3>
+    <div id="historyList" class="history-list"></div>
+  </section>
+
+  <!-- ===== ПРОФИЛЬ ===== -->
+  <section id="view-profile" class="view hidden">
+
+    <div class="profile-card">
+      <img id="profileAvatar" class="profile-avatar" src="" alt="">
+      <div class="profile-name" id="profileName">—</div>
+    </div>
+
+    <h3 class="section-title">Активная подписка</h3>
+    <div id="activeSub" class="sub-card">
+      <div class="sub-empty">Подписка не активна</div>
+    </div>
+
+    <h3 class="section-title">Подключённые устройства</h3>
+    <div id="devicesList" class="devices-list"></div>
+
+    <h3 class="section-title">История заказов</h3>
+    <div id="ordersList" class="history-list"></div>
+
+    <h3 class="section-title">Реферальная программа</h3>
+    <div class="referral-card">
+      <p class="referral-text">Приглашайте друзей и получайте бонус на баланс за каждого</p>
+      <div class="referral-link-row">
+        <input id="referralLink" class="referral-input" readonly value="">
+        <button id="copyReferralBtn" class="copy-btn">Копировать</button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===== НИЖНЯЯ НАВИГАЦИЯ ===== -->
+  <nav class="tabbar">
+    <button class="tab-btn active" data-view="plans">
+      <span class="tab-icon">📶</span><span>Тарифы</span>
+    </button>
+    <button class="tab-btn" data-view="balance">
+      <span class="tab-icon">💳</span><span>Баланс</span>
+    </button>
+    <button class="tab-btn" data-view="profile">
+      <span class="tab-icon">👤</span><span>Профиль</span>
+    </button>
+  </nav>
+
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
