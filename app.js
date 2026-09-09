@@ -2,12 +2,12 @@ const tg = window.Telegram.WebApp;
 tg.expand();
 tg.ready();
 
-// !!! Замените на адрес своего backend-сервера !!!
+// !!! Настройте под себя !!!
 const API_BASE = "https://your-backend-domain.com/api";
-const BOT_USERNAME = "your_bot_username"; // без @, для реферальной ссылки
+const BOT_USERNAME = "your_bot_username"; // без @
+const SUPPORT_USERNAME = "your_support_username"; // без @, куда пишут в поддержку
 
 // ===== ТАРИФЫ =====
-// Цены для family считаются как price * 2 (по вашей формуле).
 const BASE_PLANS = [
   { id: "1m", title: "1 месяц", price: 199 },
   { id: "3m", title: "3 месяца", price: 499 },
@@ -16,26 +16,9 @@ const BASE_PLANS = [
 
 let planType = "basic"; // basic | family
 let selectedPlan = null;
+let countdownIntervalId = null;
 
-// ===== ЭЛЕМЕНТЫ =====
-const plansEl = document.getElementById("plans");
-const statusEl = document.getElementById("status");
-const planTypeToggle = document.getElementById("planTypeToggle");
-
-const balanceAmountEl = document.getElementById("balanceAmount");
-const topupBtn = document.getElementById("topupBtn");
-const topupOptionsEl = document.getElementById("topupOptions");
-const historyListEl = document.getElementById("historyList");
-
-const profileAvatarEl = document.getElementById("profileAvatar");
-const profileNameEl = document.getElementById("profileName");
-const activeSubEl = document.getElementById("activeSub");
-const devicesListEl = document.getElementById("devicesList");
-const ordersListEl = document.getElementById("ordersList");
-const referralLinkEl = document.getElementById("referralLink");
-const copyReferralBtn = document.getElementById("copyReferralBtn");
-
-// ================= НАВИГАЦИЯ ПО ВКЛАДКАМ =================
+// ================= НАВИГАЦИЯ =================
 document.querySelectorAll(".tab-btn").forEach((btn) => {
   btn.addEventListener("click", () => switchView(btn.dataset.view));
 });
@@ -43,26 +26,145 @@ document.querySelectorAll(".tab-btn").forEach((btn) => {
 function switchView(view) {
   document.querySelectorAll(".view").forEach((v) => v.classList.add("hidden"));
   document.getElementById(`view-${view}`).classList.remove("hidden");
-
   document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
   document.querySelector(`.tab-btn[data-view="${view}"]`).classList.add("active");
 
   tg.MainButton.hide();
+  if (countdownIntervalId) clearInterval(countdownIntervalId);
 
-  if (view === "plans" && selectedPlan) {
-    tg.MainButton.setText(`Оплатить ${planPrice(selectedPlan)} ₽`);
-    tg.MainButton.show();
-  }
+  if (view === "home") loadHome();
+  if (view === "sub") loadSubscription();
   if (view === "balance") loadBalance();
   if (view === "profile") loadProfile();
 }
 
-// ================= ТАРИФЫ =================
+// ================= ГЛАВНАЯ =================
+async function loadHome() {
+  const homeCard = document.getElementById("homeSubCard");
+  const sub = await fetchSubscription();
+
+  if (sub) {
+    homeCard.innerHTML = `
+      <div class="hs-status">✅ Подписка активна</div>
+      <div class="hs-expiry">До ${sub.expiresAtFormatted}</div>
+    `;
+    document.getElementById("homeExtendPrice").textContent = "";
+  } else {
+    homeCard.innerHTML = `<div class="hs-empty">Подписка не активна</div>`;
+  }
+}
+
+document.getElementById("homeExtendBtn").addEventListener("click", () => switchView("sub"));
+document.getElementById("homeConnectBtn").addEventListener("click", () => switchView("sub"));
+
+// ================= ПОДПИСКА =================
+async function loadSubscription() {
+  const sub = await fetchSubscription();
+  const activeBlock = document.getElementById("subActiveBlock");
+  const plansBlock = document.getElementById("subPlansBlock");
+
+  if (sub) {
+    activeBlock.classList.remove("hidden");
+    plansBlock.classList.add("hidden");
+    renderActiveSub(sub);
+  } else {
+    activeBlock.classList.add("hidden");
+    plansBlock.classList.remove("hidden");
+    renderPlans();
+  }
+}
+
+function renderActiveSub(sub) {
+  document.getElementById("subPlanTitle").textContent = sub.planTitle;
+  document.getElementById("subPlanPrice").textContent = `${sub.price} ₽`;
+  document.getElementById("countdownUntil").textContent = `Действует до: ${sub.expiresAtFormatted}`;
+
+  document.getElementById("trafficValue").textContent = `${sub.trafficUsedGb} GB / ${sub.trafficLimitGb} GB`;
+  document.getElementById("usageBarFill").style.width = `${Math.min(100, (sub.trafficUsedGb / sub.trafficLimitGb) * 100)}%`;
+  document.getElementById("devicesValue").textContent = `${sub.devicesUsed} из ${sub.devicesLimit} подключено`;
+
+  renderDevices(sub.devices || []);
+  startCountdown(sub.expiresAtIso);
+}
+
+function startCountdown(expiresAtIso) {
+  const el = document.getElementById("countdownTimer");
+  const expiresAt = new Date(expiresAtIso).getTime();
+
+  function tick() {
+    const diff = expiresAt - Date.now();
+    if (diff <= 0) {
+      el.textContent = "Истекла";
+      clearInterval(countdownIntervalId);
+      return;
+    }
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    el.textContent = `${d}дн ${h}ч ${m}м ${s}с`;
+  }
+  tick();
+  countdownIntervalId = setInterval(tick, 1000);
+}
+
+document.getElementById("manageDevicesBtn").addEventListener("click", () => {
+  document.getElementById("devicesManage").classList.toggle("hidden");
+});
+
+function renderDevices(devices) {
+  const listEl = document.getElementById("devicesList");
+  if (!devices.length) {
+    listEl.innerHTML = `<div class="empty-note">Нет подключённых устройств</div>`;
+    return;
+  }
+  listEl.innerHTML = devices.map((d) => `
+    <div class="device-item">
+      <div>
+        <div class="d-name">${d.name}</div>
+        <div class="d-sub">${d.platform}</div>
+      </div>
+      <button class="device-remove" data-id="${d.id}">Удалить</button>
+    </div>
+  `).join("");
+
+  listEl.querySelectorAll(".device-remove").forEach((btn) => {
+    btn.addEventListener("click", () => removeDevice(btn.dataset.id));
+  });
+}
+
+// TODO backend: DELETE /api/devices/:id
+async function removeDevice(deviceId) {
+  try {
+    await fetch(`${API_BASE}/devices/${deviceId}`, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData: tg.initData }),
+    });
+    loadSubscription();
+  } catch (err) {
+    console.error(err);
+  }
+}
+
+document.getElementById("extendBtn").addEventListener("click", () => {
+  document.getElementById("subActiveBlock").classList.add("hidden");
+  document.getElementById("subPlansBlock").classList.remove("hidden");
+  renderPlans();
+});
+document.getElementById("changePlanBtn").addEventListener("click", () => {
+  document.getElementById("subActiveBlock").classList.add("hidden");
+  document.getElementById("subPlansBlock").classList.remove("hidden");
+  renderPlans();
+});
+
+// ----- выбор тарифа -----
 function planPrice(plan) {
   return planType === "family" ? plan.price * 2 : plan.price;
 }
 
 function renderPlans() {
+  const plansEl = document.getElementById("plans");
   plansEl.innerHTML = "";
   BASE_PLANS.forEach((plan) => {
     const card = document.createElement("div");
@@ -82,10 +184,10 @@ function renderPlans() {
   tg.MainButton.hide();
 }
 
-planTypeToggle.querySelectorAll(".seg-btn").forEach((btn) => {
+document.getElementById("planTypeToggle").querySelectorAll(".seg-btn").forEach((btn) => {
   btn.addEventListener("click", () => {
     planType = btn.dataset.type;
-    planTypeToggle.querySelectorAll(".seg-btn").forEach((b) => b.classList.remove("active"));
+    document.querySelectorAll("#planTypeToggle .seg-btn").forEach((b) => b.classList.remove("active"));
     btn.classList.add("active");
     renderPlans();
   });
@@ -95,20 +197,20 @@ function selectPlan(plan, cardEl) {
   selectedPlan = plan;
   document.querySelectorAll(".plan-card").forEach((el) => el.classList.remove("selected"));
   cardEl.classList.add("selected");
-
   tg.MainButton.setText(`Оплатить ${planPrice(plan)} ₽`);
   tg.MainButton.show();
 }
 
 function showStatus(text) {
+  const statusEl = document.getElementById("status");
   statusEl.textContent = text;
   statusEl.classList.remove("hidden");
 }
 
+let pendingTopupAmount = null;
+
 tg.MainButton.onClick(async () => {
-  // Если открыта вкладка "Баланс" — MainButton используется для пополнения (см. ниже),
-  // иначе — это оплата тарифа.
-  if (!document.getElementById("view-plans").classList.contains("hidden") && selectedPlan) {
+  if (!document.getElementById("view-sub").classList.contains("hidden") && selectedPlan) {
     await payForPlan();
   } else if (pendingTopupAmount) {
     await payTopup(pendingTopupAmount);
@@ -118,16 +220,11 @@ tg.MainButton.onClick(async () => {
 async function payForPlan() {
   tg.MainButton.showProgress();
   showStatus("Создаём счёт на оплату…");
-
   try {
     const res = await fetch(`${API_BASE}/create-invoice`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        initData: tg.initData,
-        planId: selectedPlan.id,
-        planType: planType, // "basic" | "family" — backend сам считает цену x2
-      }),
+      body: JSON.stringify({ initData: tg.initData, planId: selectedPlan.id, planType }),
     });
     if (!res.ok) throw new Error("invoice_failed");
     const { invoiceLink, orderId } = await res.json();
@@ -152,32 +249,73 @@ async function payForPlan() {
 
 async function pollForConfig(orderId, attempt = 0) {
   if (attempt > 15) {
-    showStatus("Готовим доступ дольше обычного — конфиг придёт вам в чат с ботом.");
+    showStatus("Готовим доступ дольше обычного — ссылка придёт в чат с ботом.");
     return;
   }
   const res = await fetch(`${API_BASE}/order-status?orderId=${orderId}`);
   const data = await res.json();
-
   if (data.ready) {
-    showStatus("Готово ✅ Ссылка для Happ отправлена вам в чат с ботом.");
+    showStatus("Готово ✅ Ссылка для Happ отправлена вам в чат.");
+    loadSubscription();
   } else {
     setTimeout(() => pollForConfig(orderId, attempt + 1), 2000);
   }
 }
 
-// ================= БАЛАНС =================
-let pendingTopupAmount = null;
+// TODO backend: GET /api/subscription?initData=... -> null | {
+//   planTitle, price, expiresAtIso, expiresAtFormatted,
+//   trafficUsedGb, trafficLimitGb, devicesUsed, devicesLimit,
+//   devices: [{id, name, platform}]
+// }
+async function fetchSubscription() {
+  try {
+    const res = await fetch(`${API_BASE}/subscription?initData=${encodeURIComponent(tg.initData)}`);
+    if (!res.ok) throw new Error();
+    const data = await res.json();
+    return data.subscription || null;
+  } catch {
+    return null; // пока backend не готов — считаем, что подписки нет
+  }
+}
 
-topupBtn.addEventListener("click", () => {
-  topupOptionsEl.classList.toggle("hidden");
+// ================= БАЛАНС =================
+document.getElementById("topupBtn").addEventListener("click", () => {
+  document.getElementById("topupOptions").classList.toggle("hidden");
+  document.getElementById("promoBox").classList.add("hidden");
+});
+document.getElementById("promoBtn").addEventListener("click", () => {
+  document.getElementById("promoBox").classList.toggle("hidden");
+  document.getElementById("topupOptions").classList.add("hidden");
 });
 
-topupOptionsEl.querySelectorAll(".topup-chip").forEach((chip) => {
+document.querySelectorAll(".topup-chip").forEach((chip) => {
   chip.addEventListener("click", () => {
     pendingTopupAmount = Number(chip.dataset.amount);
     tg.MainButton.setText(`Пополнить на ${pendingTopupAmount} ₽`);
     tg.MainButton.show();
   });
+});
+
+// TODO backend: POST /api/apply-promo { initData, code }
+document.getElementById("promoApplyBtn").addEventListener("click", async () => {
+  const code = document.getElementById("promoInput").value.trim();
+  if (!code) return;
+  try {
+    const res = await fetch(`${API_BASE}/apply-promo`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData: tg.initData, code }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      tg.HapticFeedback?.notificationOccurred("success");
+      loadBalance();
+    } else {
+      tg.HapticFeedback?.notificationOccurred("error");
+    }
+  } catch (err) {
+    console.error(err);
+  }
 });
 
 async function payTopup(amount) {
@@ -190,12 +328,9 @@ async function payTopup(amount) {
     });
     if (!res.ok) throw new Error("topup_failed");
     const { invoiceLink } = await res.json();
-
     tg.openInvoice(invoiceLink, (status) => {
       tg.MainButton.hideProgress();
-      if (status === "paid") {
-        loadBalance(); // обновляем баланс и историю
-      }
+      if (status === "paid") loadBalance();
     });
   } catch (err) {
     tg.MainButton.hideProgress();
@@ -203,8 +338,7 @@ async function payTopup(amount) {
   }
 }
 
-// TODO backend: реализовать GET /api/balance?initData=... ->
-// { balance, history: [{title, date, amount, type: "plus"|"minus"}] }
+// TODO backend: GET /api/balance?initData=... -> { balance, history: [{title, date, amount, type}] }
 async function loadBalance() {
   try {
     const res = await fetch(`${API_BASE}/balance?initData=${encodeURIComponent(tg.initData)}`);
@@ -212,97 +346,54 @@ async function loadBalance() {
     const data = await res.json();
     renderBalance(data);
   } catch {
-    // Пока backend не готов — просто ничего не показываем поверх плейсхолдера
-    balanceAmountEl.textContent = "— ₽";
-    historyListEl.innerHTML = `<div class="empty-note">История пока недоступна</div>`;
+    document.getElementById("balanceAmount").textContent = "₽ 0.00";
+    document.getElementById("historyList").innerHTML = `<div class="empty-note">История пока недоступна</div>`;
   }
 }
 
 function renderBalance(data) {
-  balanceAmountEl.textContent = `${data.balance} ₽`;
+  document.getElementById("balanceAmount").textContent = `₽ ${Number(data.balance).toFixed(2)}`;
+  const historyListEl = document.getElementById("historyList");
   if (!data.history || data.history.length === 0) {
     historyListEl.innerHTML = `<div class="empty-note">Операций пока нет</div>`;
     return;
   }
-  historyListEl.innerHTML = data.history
-    .map(
-      (h) => `
-      <div class="history-item">
-        <div>
-          <div class="h-title">${h.title}</div>
-          <div class="h-date">${h.date}</div>
-        </div>
-        <div class="h-amount ${h.type}">${h.type === "plus" ? "+" : "-"}${h.amount} ₽</div>
-      </div>`
-    )
-    .join("");
+  historyListEl.innerHTML = data.history.map((h) => `
+    <div class="history-item">
+      <div>
+        <div class="h-title">${h.title}</div>
+        <div class="h-date">${h.date}</div>
+      </div>
+      <div class="h-amount ${h.type}">${h.type === "plus" ? "+" : "-"}${h.amount} ₽</div>
+    </div>`).join("");
 }
 
 // ================= ПРОФИЛЬ =================
-function renderProfileHeader() {
+function loadProfile() {
   const user = tg.initDataUnsafe?.user;
   if (!user) return;
-  profileNameEl.textContent = [user.first_name, user.last_name].filter(Boolean).join(" ") || user.username || "Пользователь";
-  if (user.photo_url) profileAvatarEl.src = user.photo_url;
+  document.getElementById("profileName").textContent = [user.first_name, user.last_name].filter(Boolean).join(" ") || "Пользователь";
+  document.getElementById("profileUsername").textContent = user.username ? `@${user.username}` : "";
+  document.getElementById("profileId").textContent = user.id;
+  if (user.photo_url) document.getElementById("profileAvatar").src = user.photo_url;
 
-  referralLinkEl.value = `https://t.me/${BOT_USERNAME}?start=ref_${user.id}`;
+  // TODO backend: реальная дата регистрации пользователя в вашей БД
+  document.getElementById("profileJoined").textContent = "—";
+
+  document.getElementById("referralLink").value = `https://t.me/${BOT_USERNAME}?start=ref_${user.id}`;
 }
 
-copyReferralBtn.addEventListener("click", () => {
-  referralLinkEl.select();
+document.getElementById("copyReferralBtn").addEventListener("click", () => {
+  const input = document.getElementById("referralLink");
+  input.select();
   document.execCommand("copy");
   tg.HapticFeedback?.notificationOccurred("success");
 });
 
-// TODO backend: реализовать GET /api/profile?initData=... ->
-// { subscription: {planTitle, expiresAt, devicesUsed, devicesLimit} | null,
-//   devices: [{name, status}], orders: [{title, date, amount}] }
-async function loadProfile() {
-  try {
-    const res = await fetch(`${API_BASE}/profile?initData=${encodeURIComponent(tg.initData)}`);
-    if (!res.ok) throw new Error();
-    const data = await res.json();
-    renderProfile(data);
-  } catch {
-    activeSubEl.innerHTML = `<div class="sub-empty">Подписка не активна</div>`;
-    devicesListEl.innerHTML = `<div class="empty-note">Нет подключённых устройств</div>`;
-    ordersListEl.innerHTML = `<div class="empty-note">Заказов пока нет</div>`;
-  }
-}
-
-function renderProfile(data) {
-  if (data.subscription) {
-    const s = data.subscription;
-    activeSubEl.innerHTML = `
-      <div class="sub-active">
-        <div class="sub-plan">${s.planTitle}</div>
-        <div class="sub-expiry">Действует до ${s.expiresAt}</div>
-        <div class="sub-devices">Устройства: ${s.devicesUsed} / ${s.devicesLimit}</div>
-      </div>`;
-  } else {
-    activeSubEl.innerHTML = `<div class="sub-empty">Подписка не активна</div>`;
-  }
-
-  devicesListEl.innerHTML = (data.devices && data.devices.length)
-    ? data.devices.map((d) => `
-        <div class="device-item">
-          <span class="d-name">${d.name}</span>
-          <span class="d-status">${d.status}</span>
-        </div>`).join("")
-    : `<div class="empty-note">Нет подключённых устройств</div>`;
-
-  ordersListEl.innerHTML = (data.orders && data.orders.length)
-    ? data.orders.map((o) => `
-        <div class="history-item">
-          <div>
-            <div class="h-title">${o.title}</div>
-            <div class="h-date">${o.date}</div>
-          </div>
-          <div class="h-amount minus">${o.amount} ₽</div>
-        </div>`).join("")
-    : `<div class="empty-note">Заказов пока нет</div>`;
-}
+// ================= ПОДДЕРЖКА =================
+document.getElementById("supportBtn").addEventListener("click", () => {
+  tg.openTelegramLink(`https://t.me/${SUPPORT_USERNAME}`);
+});
 
 // ================= INIT =================
-renderPlans();
-renderProfileHeader();
+loadHome();

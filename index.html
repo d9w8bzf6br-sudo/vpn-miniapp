@@ -11,35 +11,110 @@
 
 <div class="container">
 
-  <header class="brand">
-    <h1><span class="brand-white">Veloce</span><span class="brand-cyan">PN</span></h1>
-  </header>
-
-  <!-- ===== ТАРИФЫ ===== -->
-  <section id="view-plans" class="view">
-
-    <div class="segmented" id="planTypeToggle">
-      <button class="seg-btn active" data-type="basic">Базовый<span class="seg-sub">до 2 устройств</span></button>
-      <button class="seg-btn" data-type="family">Семейный<span class="seg-sub">до 5 устройств</span></button>
+  <!-- ===== ГЛАВНАЯ ===== -->
+  <section id="view-home" class="view">
+    <div class="logo-block">
+      <h1><span class="brand-white">Veloce</span><span class="brand-cyan">PN</span></h1>
     </div>
 
-    <div id="plans" class="plans"></div>
+    <div id="homeSubCard" class="home-sub-card">
+      <!-- рендерится в app.js: активна / не активна -->
+    </div>
 
-    <div id="status" class="status hidden"></div>
+    <button id="homeExtendBtn" class="primary-btn">
+      <span>🌐 Продлить подписку</span>
+      <span id="homeExtendPrice" class="btn-price"></span>
+    </button>
+    <button id="homeConnectBtn" class="secondary-btn">🔗 Подключить устройство</button>
+  </section>
+
+  <!-- ===== ПОДПИСКА ===== -->
+  <section id="view-sub" class="view hidden">
+
+    <!-- Состояние A: есть активная подписка -->
+    <div id="subActiveBlock" class="hidden">
+      <div class="sub-status-card">
+        <div class="sub-status-row">
+          <span class="hint-label">ТАРИФ</span>
+          <span class="active-pill">● АКТИВНА</span>
+        </div>
+        <div class="sub-plan-title" id="subPlanTitle">—</div>
+        <div class="sub-plan-price" id="subPlanPrice">—</div>
+
+        <div class="countdown-box">
+          <span class="hint-label">ОСТАЛОСЬ</span>
+          <div class="countdown-timer" id="countdownTimer">—</div>
+          <div class="countdown-until" id="countdownUntil"></div>
+        </div>
+      </div>
+
+      <div class="two-btn-row">
+        <button id="extendBtn" class="primary-btn flex1">Продлить подписку</button>
+        <button id="changePlanBtn" class="secondary-btn flex1">Сменить тариф</button>
+      </div>
+
+      <h3 class="section-title">Использование</h3>
+      <div class="usage-card">
+        <div class="usage-row">
+          <div>
+            <div class="usage-label">Трафик</div>
+            <div class="usage-value" id="trafficValue">— / —</div>
+          </div>
+          <button class="chip-btn">Докупить</button>
+        </div>
+        <div class="usage-bar"><div class="usage-bar-fill" id="usageBarFill"></div></div>
+        <div class="usage-note">Сброс ежемесячно</div>
+      </div>
+
+      <div class="usage-card">
+        <div class="usage-row">
+          <div>
+            <div class="usage-label">Устройства</div>
+            <div class="usage-value" id="devicesValue">— из —</div>
+          </div>
+          <button class="chip-btn" id="manageDevicesBtn">Изменить</button>
+        </div>
+      </div>
+
+      <div id="devicesManage" class="hidden">
+        <h3 class="section-title">Мои устройства</h3>
+        <div id="devicesList" class="devices-list"></div>
+      </div>
+    </div>
+
+    <!-- Состояние B: подписки нет — выбор тарифа -->
+    <div id="subPlansBlock">
+      <div class="segmented" id="planTypeToggle">
+        <button class="seg-btn active" data-type="basic">Базовый<span class="seg-sub">до 2 устройств</span></button>
+        <button class="seg-btn" data-type="family">Семейный<span class="seg-sub">до 5 устройств</span></button>
+      </div>
+      <div id="plans" class="plans"></div>
+      <div id="status" class="status hidden"></div>
+    </div>
   </section>
 
   <!-- ===== БАЛАНС ===== -->
   <section id="view-balance" class="view hidden">
+    <h2 class="page-title">Баланс</h2>
+
     <div class="balance-card">
-      <span class="balance-label">Баланс</span>
-      <span class="balance-amount" id="balanceAmount">0 ₽</span>
-      <button class="topup-btn" id="topupBtn">Пополнить</button>
+      <span class="balance-label">Доступно</span>
+      <span class="balance-amount" id="balanceAmount">₽ 0.00</span>
+      <div class="two-btn-row">
+        <button class="primary-btn flex1" id="topupBtn">Пополнить</button>
+        <button class="secondary-btn flex1" id="promoBtn">Промокод</button>
+      </div>
     </div>
 
-    <div class="topup-options hidden" id="topupOptions">
+    <div id="topupOptions" class="topup-options hidden">
       <button class="topup-chip" data-amount="300">+300 ₽</button>
       <button class="topup-chip" data-amount="500">+500 ₽</button>
       <button class="topup-chip" data-amount="1000">+1000 ₽</button>
+    </div>
+
+    <div id="promoBox" class="promo-box hidden">
+      <input id="promoInput" class="promo-input" placeholder="Введите промокод">
+      <button id="promoApplyBtn" class="chip-btn">Применить</button>
     </div>
 
     <h3 class="section-title">История операций</h3>
@@ -48,45 +123,45 @@
 
   <!-- ===== ПРОФИЛЬ ===== -->
   <section id="view-profile" class="view hidden">
-
-    <div class="profile-card">
-      <img id="profileAvatar" class="profile-avatar" src="" alt="">
+    <div class="profile-header">
+      <div class="profile-avatar-wrap">
+        <img id="profileAvatar" class="profile-avatar" src="" alt="">
+      </div>
       <div class="profile-name" id="profileName">—</div>
+      <div class="profile-username" id="profileUsername">—</div>
     </div>
 
-    <h3 class="section-title">Активная подписка</h3>
-    <div id="activeSub" class="sub-card">
-      <div class="sub-empty">Подписка не активна</div>
+    <div class="info-card">
+      <div class="info-row"><span>Telegram ID</span><span id="profileId">—</span></div>
+      <div class="info-row"><span>Дата регистрации</span><span id="profileJoined">—</span></div>
     </div>
 
-    <h3 class="section-title">Подключённые устройства</h3>
-    <div id="devicesList" class="devices-list"></div>
-
-    <h3 class="section-title">История заказов</h3>
-    <div id="ordersList" class="history-list"></div>
-
-    <h3 class="section-title">Реферальная программа</h3>
     <div class="referral-card">
+      <div class="referral-title">🎁 Реферальная программа</div>
       <p class="referral-text">Приглашайте друзей и получайте бонус на баланс за каждого</p>
       <div class="referral-link-row">
         <input id="referralLink" class="referral-input" readonly value="">
-        <button id="copyReferralBtn" class="copy-btn">Копировать</button>
+        <button id="copyReferralBtn" class="chip-btn">Копировать</button>
       </div>
     </div>
+  </section>
 
+  <!-- ===== ПОДДЕРЖКА ===== -->
+  <section id="view-support" class="view hidden">
+    <h2 class="page-title">Поддержка</h2>
+    <div class="support-card">
+      <p>Остались вопросы по подписке, оплате или подключению устройства?</p>
+      <button id="supportBtn" class="primary-btn">Написать в поддержку</button>
+    </div>
   </section>
 
   <!-- ===== НИЖНЯЯ НАВИГАЦИЯ ===== -->
   <nav class="tabbar">
-    <button class="tab-btn active" data-view="plans">
-      <span class="tab-icon">📶</span><span>Тарифы</span>
-    </button>
-    <button class="tab-btn" data-view="balance">
-      <span class="tab-icon">💳</span><span>Баланс</span>
-    </button>
-    <button class="tab-btn" data-view="profile">
-      <span class="tab-icon">👤</span><span>Профиль</span>
-    </button>
+    <button class="tab-btn active" data-view="home"><span class="tab-icon">🏠</span><span>Главная</span></button>
+    <button class="tab-btn" data-view="sub"><span class="tab-icon">🌐</span><span>Подписка</span></button>
+    <button class="tab-btn" data-view="balance"><span class="tab-icon">💳</span><span>Баланс</span></button>
+    <button class="tab-btn" data-view="profile"><span class="tab-icon">👤</span><span>Профиль</span></button>
+    <button class="tab-btn" data-view="support"><span class="tab-icon">💬</span><span>Поддержка</span></button>
   </nav>
 
 </div>
