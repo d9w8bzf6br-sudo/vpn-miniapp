@@ -4,7 +4,7 @@ tg.ready();
 
 // !!! Настройте под себя !!!
 const API_BASE = "https://your-backend-domain.com/api";
-const BOT_USERNAME = "your_bot_username"; // без @
+const BOT_USERNAME = "VelocePN_bot"; // без @
 const SUPPORT_USERNAME = "your_support_username"; // без @, куда пишут в поддержку
 
 // ===== ТАРИФЫ =====
